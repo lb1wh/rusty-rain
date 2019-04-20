@@ -1,0 +1,2 @@
+# rain
+Experimental MUD client
