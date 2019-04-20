@@ -1,0 +1,7 @@
+[package]
+name = "rain"
+version = "0.1.0"
+authors = ["Dag Henrik Fjær <dhf@hydra.org>"]
+edition = "2018"
+
+[dependencies]
