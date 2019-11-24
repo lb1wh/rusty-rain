@@ -1,0 +1,7 @@
+target:
+  hostname: shadowgate.org
+  port: 4016
+
+network:
+  input_buflen: 80
+  read_timeout: 10
