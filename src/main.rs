@@ -1,6 +1,9 @@
 use std::env;
 use std::io::{self, Read, Write};
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, TryRecvError};
 use std::net::TcpStream;
+use std::thread;
 use std::time::Duration;
 use std::fs;
 
@@ -38,7 +41,8 @@ fn read_config() -> Config {
     config
 }
 
-fn read_network(stream: &mut TcpStream, network_in: &mut Vec<u8>){
+/// Receive input from the remote host.
+fn read_network(stream: &mut TcpStream, network_in: &mut Vec<u8>) {
     match stream.read(network_in) {
         Ok(_) => {
             for c in network_in.iter() {
@@ -53,14 +57,38 @@ fn read_network(stream: &mut TcpStream, network_in: &mut Vec<u8>){
     };
 }
 
+/// Separate thread that reads user (keyboard) input.
+fn spawn_stdin_channel() -> Receiver<String> {
+    let (tx, rx) = mpsc::channel::<String>();
+
+    thread::spawn(move || loop {
+        let mut buffer = String::new();
+        io::stdin().read_line(&mut buffer).unwrap();
+        // Send input across the channel, to the owning thread.
+        tx.send(buffer).expect("Unable to transmit");
+    });
+
+    rx
+}
+
+/// Read user (keyboard) input without blocking.
+fn read_user_input(stream: &mut TcpStream, receiver: &Receiver<String>) {
+    match receiver.try_recv() {
+        Ok(user_input) => {
+            stream.write(&user_input.as_bytes()).expect("Unable to transmit");
+        },
+        Err(TryRecvError::Empty) => (), //println!("Error: Channel empty"),
+        Err(TryRecvError::Disconnected) => (), //panic!("Error: Channel disconnected"),
+    }
+}
+
 fn main() {
     println!("Rain 0.1.0");
 
     let config = read_config();
 
-    let mut stream = TcpStream::connect(format!("{}:{}",
-                                                &config.target.hostname,
-                                                &config.target.port))
+    let mut stream = TcpStream::connect(
+        format!("{}:{}", &config.target.hostname, &config.target.port))
         .expect(&format!("Unable to connect to host: {}", &config.target.hostname));
 
     // Disable blocking for read, write, recv and send
@@ -70,11 +98,13 @@ fn main() {
         .expect("Call to set_read_timeout failed");
 
     let mut network_in = vec![0; config.network.input_buflen];
+    // Receive user input in a separate thread.
+    let stdin_channel = spawn_stdin_channel();
 
     // This approach doesn't assume that all inputs end in '\n' or EOF,
     // unlike BufReader and several other reader-functions.
     loop {
         read_network(&mut stream, &mut network_in);
-        // read_user_input();
+        read_user_input(&mut stream, &stdin_channel);
     };
 }
