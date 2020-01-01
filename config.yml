@@ -1,6 +1,6 @@
 target:
-  hostname: shadowgate.org
-  port: 4016
+  hostname: midnightsun2.org #shadowgate.org
+  port: 23 #4016
 
 network:
   input_buflen: 80
