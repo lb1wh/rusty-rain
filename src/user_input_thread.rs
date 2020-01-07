@@ -39,5 +39,5 @@ pub fn read_user_input(stream: &mut TcpStream, receiver: &Receiver<String>) {
 }
 
 fn process_command(cmd: &str) {
-    println!("process_command does nothing...");
+    println!("process_command does nothing... {}", cmd);
 }

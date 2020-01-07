@@ -44,11 +44,10 @@ fn read_config() -> Config {
 fn read_network(stream: &mut TcpStream, network_in: &mut Vec<u8>) {
     match stream.read(network_in) {
         Ok(_) => {
-
-            let input = match std::str::from_utf8(network_in) {
+            match std::str::from_utf8(network_in) {
                 Ok(data) => print!("{}", data),
                 Err(e) => print!("[{}]", e),
-            };
+            }
 
             io::stdout().flush().unwrap();
             for i in network_in.iter_mut() { *i = 0; }
@@ -57,6 +56,17 @@ fn read_network(stream: &mut TcpStream, network_in: &mut Vec<u8>) {
         // errors produced by read() that require special handling?
         Err(_) => {}
     };
+}
+
+fn enable_gmcp(stream: &mut TcpStream) {
+    let tn_iac = 255u8 as char;
+    let tn_do = 253u8 as char;
+    let opt_gmcp = 201u8 as char;
+
+    let option = vec![tn_iac, tn_do, opt_gmcp];
+    let option: String = option.into_iter().collect();
+
+    stream.write(&option.as_ref()).expect("Unable to transmit");
 }
 
 fn main() {
@@ -77,6 +87,8 @@ fn main() {
     let mut network_in = vec![0; config.network.input_buflen];
     // Receive user input in a separate thread.
     let stdin_channel = user_input_thread::spawn_stdin_channel();
+
+    enable_gmcp(&mut stream);
 
     // This approach doesn't assume that all inputs end in '\n' or EOF,
     // unlike BufReader and several other reader-functions.
