@@ -57,11 +57,12 @@ fn read_network(stream: &mut TcpStream, network_in: &mut Vec<u8>) {
         Err(_) => {}
     };
 }
-
+/// Enable the Generic MUD Communication Protocol, such that
+/// we receive heartbeats with metadata from the server.
 fn enable_gmcp(stream: &mut TcpStream) {
-    let tn_iac = 255u8 as char;
-    let tn_do = 253u8 as char;
-    let opt_gmcp = 201u8 as char;
+    let tn_iac = 255u8 as char;   // Telnet IAC (Interpret As Command)
+    let tn_do = 253u8 as char;    // Telnet option code DO
+    let opt_gmcp = 201u8 as char; // Option Generic MUD Communication Protocol
 
     let option = vec![tn_iac, tn_do, opt_gmcp];
     let option: String = option.into_iter().collect();
