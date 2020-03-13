@@ -57,6 +57,7 @@ fn read_network(stream: &mut TcpStream, network_in: &mut Vec<u8>) {
         Err(_) => {}
     };
 }
+
 /// Enable the Generic MUD Communication Protocol, such that
 /// we receive heartbeats with metadata from the server.
 fn enable_gmcp(stream: &mut TcpStream) {
@@ -68,6 +69,10 @@ fn enable_gmcp(stream: &mut TcpStream) {
     let option: String = option.into_iter().collect();
 
     stream.write(&option.as_ref()).expect("Unable to transmit");
+
+    // Is any subnegotiation required here? I.e. a sequence of
+    // TN_SB, options, TN_SE for the GMCP-option, where SB denotes the start of
+    // subnegotiation and TN_SE denotes the end of subnegotiation.
 }
 
 fn main() {
