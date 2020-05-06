@@ -6,7 +6,7 @@ use std::time::Duration;
 use std::fs;
 use serde::{Serialize, Deserialize};
 
-mod user_input_thread;
+mod user_input;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Target {
@@ -92,7 +92,7 @@ fn main() {
 
     let mut network_in = vec![0; config.network.input_buflen];
     // Receive user input in a separate thread.
-    let stdin_channel = user_input_thread::spawn_stdin_channel();
+    let stdin_channel = user_input::spawn_stdin_channel();
 
     enable_gmcp(&mut stream);
 
@@ -100,6 +100,6 @@ fn main() {
     // unlike BufReader and several other reader-functions.
     loop {
         read_network(&mut stream, &mut network_in);
-        user_input_thread::read_user_input(&mut stream, &stdin_channel);
+        user_input::read_user_input(&mut stream, &stdin_channel);
     };
 }
