@@ -7,6 +7,7 @@ use std::fs;
 use serde::{Serialize, Deserialize};
 
 mod user_input;
+mod telnet;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Target {
@@ -46,7 +47,16 @@ fn read_network(stream: &mut TcpStream, network_in: &mut Vec<u8>) {
         Ok(_) => {
             match std::str::from_utf8(network_in) {
                 Ok(data) => print!("{}", data),
-                Err(e) => print!("[{}]", e),
+                // Received invalid UTF-8 - proceed to display
+                // characters up until the invalid one.
+                Err(e) => {
+                    let invalid_pos = e.valid_up_to();
+                    let (valid, _) = network_in.split_at(invalid_pos);
+                    print!("{}", std::str::from_utf8(valid).unwrap());
+
+                    // Validate and process telnet options
+                    //telnet::process_opts(stream, network_in);
+                }
             }
 
             io::stdout().flush().unwrap();
@@ -56,23 +66,6 @@ fn read_network(stream: &mut TcpStream, network_in: &mut Vec<u8>) {
         // errors produced by read() that require special handling?
         Err(_) => {}
     };
-}
-
-/// Enable the Generic MUD Communication Protocol, such that
-/// we receive heartbeats with metadata from the server.
-fn enable_gmcp(stream: &mut TcpStream) {
-    let tn_iac = 255u8 as char;   // Telnet IAC (Interpret As Command)
-    let tn_do = 253u8 as char;    // Telnet option code DO
-    let opt_gmcp = 201u8 as char; // Option Generic MUD Communication Protocol
-
-    let option = vec![tn_iac, tn_do, opt_gmcp];
-    let option: String = option.into_iter().collect();
-
-    stream.write(&option.as_ref()).expect("Unable to transmit");
-
-    // Is any subnegotiation required here? I.e. a sequence of
-    // TN_SB, options, TN_SE for the GMCP-option, where SB denotes the start of
-    // subnegotiation and TN_SE denotes the end of subnegotiation.
 }
 
 fn main() {
@@ -91,10 +84,11 @@ fn main() {
         .expect("Call to set_read_timeout failed");
 
     let mut network_in = vec![0; config.network.input_buflen];
-    // Receive user input in a separate thread.
+
+    // Receive and process user input in a separate thread.
     let stdin_channel = user_input::spawn_stdin_channel();
 
-    enable_gmcp(&mut stream);
+    //let opt_parser = telnet::OptionParser::new();
 
     // This approach doesn't assume that all inputs end in '\n' or EOF,
     // unlike BufReader and several other reader-functions.
