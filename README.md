@@ -1,2 +1,2 @@
-# rain
+# rusty rain
 Experimental MUD client
